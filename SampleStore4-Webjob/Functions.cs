@@ -8,6 +8,7 @@ using Microsoft.Azure.WebJobs;
 using NAudio.Wave;
 using Microsoft.WindowsAzure.Storage.Blob;
 using Microsoft.WindowsAzure.Storage.Table;
+using SampleStore4.Models;
 
 
 namespace SampleStore4_WebJob
@@ -21,40 +22,53 @@ namespace SampleStore4_WebJob
         // "photogallery" is name of storage container; "images" and "thumbanils" are folder names. 
         // "{queueTrigger}" is an inbuilt variable taking on value of contents of message automatically;
         // the other variables are valued automatically.
-        public static void GenerateSample(
-        [QueueTrigger("samplemaker")] String blobInfo,
+        public static void ReadTableEntity(
+        [QueueTrigger("samplemaker")] SampleEntity sampleInQueue,
         [Blob("musiclibrary/music/{queueTrigger}")] CloudBlockBlob inputBlob,
-        [Blob("musiclibrary/samples/{queueTrigger}")] CloudBlockBlob outputBlob, TextWriter logger)
-
-
+        [Blob("musiclibrary/samples/{queueTrigger}")] CloudBlockBlob outputBlob,
+        [Table("Samples", "{PartitionKey}", "{RowKey}")] SampleEntity personInTable,
+        [Table("Samples")] CloudTable tableBinding,
+        TextWriter logger)
         {
-            //use log.WriteLine() rather than Console.WriteLine() for trace output
-            logger.WriteLine("GenerateSample() started...");
-            logger.WriteLine("Input blob is: " + blobInfo);
+            if (personInTable == null)
+            {
+                logger.WriteLine("Person not found: PK:{0}, RK:{1}",
+                        sampleInQueue.PartitionKey, sampleInQueue.RowKey);
+            }
+            else
+            {
+                logger.WriteLine("Person found: PK:{0}, RK:{1}, Name:{2}",
+                        personInTable.PartitionKey, personInTable.RowKey, personInTable.Title);
+            }
+
+            var newSample = new SampleEntity()
+            {
+                PartitionKey = "Sample_Partition_1",
+                RowKey = sampleInQueue.RowKey,
+                Mp3Blob = sampleInQueue.Mp3Blob,
+                SampleMp3Blob = sampleInQueue.SampleMp3Blob,
+                SampleMp3URL = "http://127.0.0.1:10000/devstoreaccount1/musiclibrary/music/" + sampleInQueue.Mp3Blob,
+                SampleDate = DateTime.Now
+            };
+            newSample.ETag = "*";
+            TableOperation o = TableOperation.Merge(newSample);
+            tableBinding.Execute(o);
+
             inputBlob.FetchAttributes();
             string test = inputBlob.Metadata["Title"];
-
-
             // Open streams to blobs for reading and writing as appropriate.
             // Pass references to application specific methods
-            using (Stream input = inputBlob.OpenRead())  //An exception of type 'Microsoft.WindowsAzure.Storage.StorageException'
-                                                         //occurred in Microsoft.WindowsAzure.Storage.dll but was not handled in user code. A 404 not found...
+            using (Stream input = inputBlob.OpenRead())                                                  
             using (Stream output = outputBlob.OpenWrite())
             {
                 CreateSample(input, output, 10);
                 outputBlob.Properties.ContentType = "audio/mpeg3";
             }
-
             outputBlob.Metadata["Title"] = test;
             outputBlob.SetMetadata();
             logger.WriteLine("GenerateSample() completed...");
+            
         }
-
-        //[QueueTrigger("samplemaker")]
-        //SampleEntity sampleInQueue,
-        //[Table("Samples", "{PartitionKey}", "{RowKey}")] SampleEntity sampleInTable,
-        //[Table("Samples")] CloudTable tableBinding, TextWriter logger)
-
 
         private static void CreateSample(Stream input, Stream output, int duration)
         {

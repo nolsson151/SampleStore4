@@ -19,6 +19,7 @@ namespace SampleStore4.Controllers
         private CloudStorageAccount storageAccount;
         private CloudTableClient tableClient;
         private CloudTable table;
+        private BlobStorageService _blobStorageService = new BlobStorageService();
 
         public SamplesController()
         {
@@ -88,36 +89,40 @@ namespace SampleStore4.Controllers
             }
         }
 
-        // POST: api/Samples
+        //POST: api/Samples
         /// <summary>
-        /// Create a new sample
+        /// Create a new Sample entity
         /// </summary>
         /// <param name="sample"></param>
         /// <returns></returns>
         [SwaggerResponse(HttpStatusCode.Created)]
         [ResponseType(typeof(Sample))]
-        public IHttpActionResult PostProduct(Sample sample)
+        public IHttpActionResult PostSample(Sample sample)
         {
-            SampleEntity sampleEntity = new SampleEntity()
-            {
-                RowKey = getNewMaxRowKeyValue(),
-                PartitionKey = partitionName,
-                Title = sample.Title,
-                Artist = sample.Artist,
-                CreatedDate = sample.CreatedDate,
-                Mp3Blob = sample.Mp3Blob,
-                SampleMp3Blob = sample.SampleMp3Blob,
-                SampleMp3URL = sample.SampleMp3URL,
-                SampleDate = sample.SampleDate
-            };
+            
+            
+                // Create new SampleEntity from Sample object 
+                SampleEntity sampleEntity = new SampleEntity()
+                {
+                    RowKey = getNewMaxRowKeyValue(),
+                    PartitionKey = partitionName,
+                    Title = sample.Title,
+                    Artist = sample.Artist,
+                    SampleMp3URL = sample.SampleMp3URL,
+                    CreatedDate = DateTime.Now,
+                    Mp3Blob = null,
+                    SampleMp3Blob = null,
+                    SampleDate = null
+                };
+                // Create insert operation for SampleEntity
+                var insertOperation = TableOperation.Insert(sampleEntity);
 
-            // Create the TableOperation that inserts the sample entity.
-            var insertOperation = TableOperation.Insert(sampleEntity);
+                // Execute insert operation
+                table.Execute(insertOperation);
 
-            // Execute the insert operation.
-            table.Execute(insertOperation);
-
-            return CreatedAtRoute("DefaultApi", new { id = sampleEntity.RowKey }, sampleEntity);
+                // Return HTTP status 201 Created code with details in response body
+                return CreatedAtRoute("DefaultApi", new { id = sampleEntity.RowKey }, sampleEntity);
+            
         }
 
         // PUT: api/Samples/5

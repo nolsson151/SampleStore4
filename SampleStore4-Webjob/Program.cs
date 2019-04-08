@@ -21,6 +21,7 @@ namespace SampleStore4_Webjob
                 config.UseDevelopmentSettings();
             }
 
+            config.Queues.MaxPollingInterval = TimeSpan.FromSeconds(5);
             var host = new JobHost();
             // The following code ensures that the WebJob will be running continuously
             host.RunAndBlock();
