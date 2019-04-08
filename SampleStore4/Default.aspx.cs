@@ -54,6 +54,7 @@ namespace SampleStore4
             if (upload.HasFile)
             {
                 String title = upload.FileName;
+                String id = txt1.Text;
                 // Get the file name specified by the user. 
                 var ext = Path.GetExtension(upload.FileName);
 
@@ -70,9 +71,6 @@ namespace SampleStore4
 
                 var blob = GetMusicSampleContainer().GetBlockBlobReference(path);
 
-
-
-
                 // The blob properties object (the label on the bucket)
                 // contains an entry for MIME type. Set that property.
                 blob.Properties.ContentType = GetMimeType(upload.FileName);
@@ -87,7 +85,7 @@ namespace SampleStore4
                 // role that a new photo blob exists, which will 
                 // cause it to create a thumbnail blob of that photo
                 // for easier display. 
-                SampleEntity blobInfo = new SampleEntity() { Title = "test", RowKey = "2", PartitionKey = "Samples_Partition_1", Mp3Blob = name};
+                SampleEntity blobInfo = new SampleEntity() {RowKey = id , PartitionKey = "Samples_Partition_1", Mp3Blob = name};
                 //var queueMessage = new CloudQueueMessage(JsonConvert.SerializeObject(blobInfo));
                 //logQueue.AddMessage(queueMessage);
                 GetSampleMakerQueue().AddMessage(new CloudQueueMessage(JsonConvert.SerializeObject(blobInfo)));

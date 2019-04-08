@@ -28,7 +28,7 @@ namespace SampleStore4.Models
         /// <summary>
         /// Creation date/time of entity
         /// </summary>
-        public DateTime CreatedDate { get; set; }
+        public DateTime? CreatedDate { get; set; }
 
         /// <summary>
         /// Name of the uploaded blob in blob storage
@@ -43,7 +43,7 @@ namespace SampleStore4.Models
         /// <summary>
         /// Web service resource URL of mp3 sample
         /// </summary>
-        public String SampleMp3URL { get; set; }
+        public string SampleMp3URL { get; set; }
 
         /// <summary>
         /// Creation date/time of sample

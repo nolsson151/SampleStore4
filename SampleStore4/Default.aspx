@@ -12,6 +12,8 @@
         <div>
             Upload music:
             <asp:FileUpload ID="upload" runat="server" />
+            Enter Sample ID:
+            <asp:TextBox ID="txt1" runat="server" />
             <asp:Button ID="submitButton" runat="server" Text="Submit" OnClick="submitButton_Click" />
         </div>
         <div>

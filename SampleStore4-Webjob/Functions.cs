@@ -1,27 +1,17 @@
-﻿using System;
-using System.Collections.Generic;
+﻿
 using System.IO;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+
 using Microsoft.Azure.WebJobs;
 using NAudio.Wave;
 using Microsoft.WindowsAzure.Storage.Blob;
 using Microsoft.WindowsAzure.Storage.Table;
 using SampleStore4.Models;
-
+using System;
 
 namespace SampleStore4_WebJob
 {
     public class Functions
     {
-        // This class contains the application-specific WebJob code consisting of event-driven
-        // methods executed when messages appear in queues with any supporting code.
-
-        // Trigger method  - run when new message detected in queue. "thumbnailmaker" is name of queue.
-        // "photogallery" is name of storage container; "images" and "thumbanils" are folder names. 
-        // "{queueTrigger}" is an inbuilt variable taking on value of contents of message automatically;
-        // the other variables are valued automatically.
         public static void ReadTableEntity(
         [QueueTrigger("samplemaker")] SampleEntity sampleInQueue,
         [Blob("musiclibrary/music/{queueTrigger}")] CloudBlockBlob inputBlob,
@@ -30,44 +20,45 @@ namespace SampleStore4_WebJob
         [Table("Samples")] CloudTable tableBinding,
         TextWriter logger)
         {
-            if (personInTable == null)
-            {
+            if (personInTable == null) {
                 logger.WriteLine("Person not found: PK:{0}, RK:{1}",
-                        sampleInQueue.PartitionKey, sampleInQueue.RowKey);
+                sampleInQueue.PartitionKey, sampleInQueue.RowKey);
             }
+
             else
             {
                 logger.WriteLine("Person found: PK:{0}, RK:{1}, Name:{2}",
-                        personInTable.PartitionKey, personInTable.RowKey, personInTable.Title);
-            }
+                       personInTable.PartitionKey, personInTable.RowKey, personInTable.Title);
 
-            var newSample = new SampleEntity()
-            {
-                PartitionKey = "Sample_Partition_1",
-                RowKey = sampleInQueue.RowKey,
-                Mp3Blob = sampleInQueue.Mp3Blob,
-                SampleMp3Blob = sampleInQueue.SampleMp3Blob,
-                SampleMp3URL = "http://127.0.0.1:10000/devstoreaccount1/musiclibrary/music/" + sampleInQueue.Mp3Blob,
-                SampleDate = DateTime.Now
-            };
-            newSample.ETag = "*";
-            TableOperation o = TableOperation.Merge(newSample);
-            tableBinding.Execute(o);
+                DateTime date;
+                date = DateTime.Now;
+                var newSample = new SampleEntity()
+                {
+                    PartitionKey = sampleInQueue.PartitionKey,
+                    RowKey = sampleInQueue.RowKey,
+                    Mp3Blob = sampleInQueue.Mp3Blob,
+                    SampleMp3Blob = sampleInQueue.Mp3Blob,
+                    SampleMp3URL = "http://127.0.0.1:10000/devstoreaccount1/musiclibrary/samples/" + sampleInQueue.Mp3Blob,
+                    SampleDate = DateTime.Now
+                };
+                newSample.ETag = "*";
+                TableOperation tableop = TableOperation.Merge(newSample);
+                tableBinding.Execute(tableop);
 
-            inputBlob.FetchAttributes();
-            string test = inputBlob.Metadata["Title"];
-            // Open streams to blobs for reading and writing as appropriate.
-            // Pass references to application specific methods
-            using (Stream input = inputBlob.OpenRead())                                                  
-            using (Stream output = outputBlob.OpenWrite())
-            {
-                CreateSample(input, output, 10);
-                outputBlob.Properties.ContentType = "audio/mpeg3";
+                inputBlob.FetchAttributes();
+                string test = inputBlob.Metadata["Title"];
+                // Open streams to blobs for reading and writing as appropriate.
+                // Pass references to application specific methods
+                using (Stream input = inputBlob.OpenRead())
+                using (Stream output = outputBlob.OpenWrite())
+                {
+                    CreateSample(input, output, 10);
+                    outputBlob.Properties.ContentType = "audio/mpeg3";
+                }
+                outputBlob.Metadata["Title"] = test;
+                outputBlob.SetMetadata();
+                logger.WriteLine("GenerateSample() completed...");
             }
-            outputBlob.Metadata["Title"] = test;
-            outputBlob.SetMetadata();
-            logger.WriteLine("GenerateSample() completed...");
-            
         }
 
         private static void CreateSample(Stream input, Stream output, int duration)
