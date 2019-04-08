@@ -1,12 +1,17 @@
 ﻿using Microsoft.WindowsAzure.Storage;
+using Microsoft.WindowsAzure.Storage.Blob;
+using Microsoft.WindowsAzure.Storage.Queue;
 using Microsoft.WindowsAzure.Storage.Table;
+using Newtonsoft.Json;
 using SampleStore4.Models;
 using Swashbuckle.Swagger.Annotations;
 using System;
 using System.Collections.Generic;
 using System.Configuration;
+using System.IO;
 using System.Linq;
 using System.Net;
+using System.Threading.Tasks;
 using System.Web.Http;
 using System.Web.Http.Description;
 
@@ -19,7 +24,8 @@ namespace SampleStore4.Controllers
         private CloudStorageAccount storageAccount;
         private CloudTableClient tableClient;
         private CloudTable table;
-        private BlobStorageService _blobStorageService = new BlobStorageService();
+        private BlobStorageService blobStorageService = new BlobStorageService();
+        private CloudQueueService cloudQueueService = new CloudQueueService();
 
         public SamplesController()
         {
@@ -152,11 +158,8 @@ namespace SampleStore4.Controllers
 
             updateEntity.Title = sample.Title;
             updateEntity.Artist = sample.Artist;
-            updateEntity.CreatedDate = sample.CreatedDate;
-            updateEntity.Mp3Blob = sample.Mp3Blob;
-            updateEntity.SampleMp3Blob = sample.SampleMp3Blob;
-            updateEntity.SampleMp3URL = sample.SampleMp3URL;
-            updateEntity.SampleDate = sample.SampleDate;
+            //updateEntity.CreatedDate = sample.CreatedDate;
+
 
             // Create the TableOperation that inserts the sample entity.
             // Note semantics of InsertOrReplace() which are consistent with PUT
@@ -167,6 +170,53 @@ namespace SampleStore4.Controllers
             table.Execute(updateOperation);
 
             return StatusCode(HttpStatusCode.NoContent);
+        }
+        // PUT: api/Samples/5/blob
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="id"></param>
+        /// <returns></returns>
+        [ResponseType(typeof(void))]
+        [HttpPut]
+        [Route("api/samples/{id}/blob")]
+        public async Task<IHttpActionResult> putSampleDetails(string id)
+        {
+            Stream stream = await Request.Content.ReadAsStreamAsync();
+            if(stream.Length < 1)
+            {
+                return StatusCode(HttpStatusCode.UnsupportedMediaType);
+            }
+
+            TableOperation tableOperation = TableOperation.Retrieve<SampleEntity>(partitionName, id);
+            TableResult tableResult = table.Execute(tableOperation);
+            SampleEntity sampleEntity = (SampleEntity)tableResult.Result;
+            if(sampleEntity == null)
+            {
+                return StatusCode(HttpStatusCode.NotFound);
+            }
+
+            deleteBlob(sampleEntity);
+            sampleEntity.Mp3Blob = "";
+            sampleEntity.SampleMp3URL = "";
+            sampleEntity.SampleMp3Blob = "";
+
+            string name = string.Format("{0}{1}", sampleEntity.Title, ".mp3");
+            string path = "music/" + name;
+            var blob = getContainer().GetBlockBlobReference(path);
+
+            blob.Properties.ContentType = Request.Content.Headers.ContentType.ToString();
+            blob.UploadFromStream(stream);
+
+            CloudQueue cloudQueue = getSampleQueue();
+            var queueMessage = new SampleEntity(partitionName, id);
+            cloudQueue.AddMessage(new CloudQueueMessage(JsonConvert.SerializeObject(queueMessage)));
+            sampleEntity.Mp3Blob = name;
+            var update = TableOperation.InsertOrReplace(sampleEntity);
+            table.Execute(update);
+            return StatusCode(HttpStatusCode.Created);
+
+
         }
 
         // DELETE: api/Samples/5
@@ -196,6 +246,23 @@ namespace SampleStore4.Controllers
             }
         }
 
+        public void deleteBlob(SampleEntity sampleEntity)
+        {
+            string musicFolder = "music/" + sampleEntity.Mp3Blob;
+            string sampleFolder = "muisclibrary/samples/" + sampleEntity.SampleMp3Blob;
+            
+            if(sampleEntity.Mp3Blob != "")
+            {
+                var musicBlob = getContainer().GetBlobReference(musicFolder);
+                musicBlob.DeleteIfExists(); 
+            }
+            if(sampleEntity.SampleMp3Blob != "")
+            {
+                var sampleBlob = getContainer().GetBlobReference(sampleFolder);
+                sampleBlob.DeleteIfExists();
+            }
+        }
+
         private String getNewMaxRowKeyValue()
         {
             TableQuery<SampleEntity> query = new TableQuery<SampleEntity>().Where(TableQuery.GenerateFilterCondition("PartitionKey", QueryComparisons.Equal, partitionName));
@@ -208,6 +275,16 @@ namespace SampleStore4.Controllers
             }
             maxRowKeyValue++;
             return maxRowKeyValue.ToString();
+        }
+
+        private CloudBlobContainer getContainer()
+        {
+            return blobStorageService.getCloudBlobContainer();
+        }
+
+        private CloudQueue getSampleQueue()
+        {
+            return cloudQueueService.getCloudQueue();
         }
 
 
