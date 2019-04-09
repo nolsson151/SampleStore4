@@ -104,6 +104,6 @@ C:\Users\Niklas\documents\visual studio 2015\Projects\SampleStore4\SampleStore4\
 C:\Users\Niklas\documents\visual studio 2015\Projects\SampleStore4\SampleStore4\bin\ru\System.Spatial.resources.dll
 C:\Users\Niklas\documents\visual studio 2015\Projects\SampleStore4\SampleStore4\bin\zh-Hans\System.Spatial.resources.dll
 C:\Users\Niklas\documents\visual studio 2015\Projects\SampleStore4\SampleStore4\bin\zh-Hant\System.Spatial.resources.dll
+C:\Users\Niklas\documents\visual studio 2015\Projects\SampleStore4\SampleStore4\obj\Debug\SampleStore4.csprojResolveAssemblyReference.cache
 C:\Users\Niklas\documents\visual studio 2015\Projects\SampleStore4\SampleStore4\obj\Debug\SampleStore4.dll
 C:\Users\Niklas\documents\visual studio 2015\Projects\SampleStore4\SampleStore4\obj\Debug\SampleStore4.pdb
-C:\Users\Niklas\documents\visual studio 2015\Projects\SampleStore4\SampleStore4\obj\Debug\SampleStore4.csprojResolveAssemblyReference.cache

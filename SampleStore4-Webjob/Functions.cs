@@ -15,80 +15,45 @@ namespace SampleStore4_WebJob
 
     public class Functions
     {
-        
-        public static void ReadTableEntity(
+        // This class contains the application-specific WebJob code consisting of event-driven
+        // methods executed when messages appear in queues with any supporting code.
+
+        // Trigger method  - run when new message detected in queue. "thumbnailmaker" is name of queue.
+        // "photogallery" is name of storage container; "images" and "thumbanils" are folder names.
+        // "{queueTrigger}" is an inbuilt variable taking on value of contents of message automatically;
+        // the other variables are valued automatically.
+        public static void GenerateSample(
         [QueueTrigger("samplemaker")] SampleEntity sampleInQueue,
         [Table("Samples", "{PartitionKey}", "{RowKey}")] SampleEntity sampleInTable,
         [Table("Samples")] CloudTable tableBinding, TextWriter logger)
         {
-            logger.WriteLine("Samplemaker starter");
-            BlobStorageService bs = new BlobStorageService();
-            CloudBlobContainer bc = bs.getCloudBlobContainer();
+            logger.WriteLine("GenerateSample started\n"+ 
+                "Parition key: " + sampleInQueue.PartitionKey+"\n"+
+                "Row key: "+sampleInQueue.RowKey);
+            BlobStorageService blobStorageService = new BlobStorageService();
+            CloudBlobContainer cloudBlobContainer = blobStorageService.getCloudBlobContainer();
 
             TableOperation tableOperation = TableOperation.Retrieve<SampleEntity>(sampleInQueue.PartitionKey, sampleInQueue.RowKey);
             TableResult tableResult = tableBinding.Execute(tableOperation);
             SampleEntity sampleEntity = (SampleEntity)tableResult.Result;
 
-            var blob = bc.GetDirectoryReference("music/").GetBlobReference(sampleInTable.Mp3Blob);
-            string sampleName = string.Format("{0}{1}", Guid.NewGuid(), ".mp3");
+            var inputBlob = cloudBlobContainer.GetDirectoryReference("music/").GetBlobReference(sampleInTable.Mp3Blob);
+            var sampleName = string.Format("{0}{1}", Guid.NewGuid(), ".mp3");
             sampleInTable.SampleMp3Blob = sampleName;
-            var blob2 = bc.GetBlockBlobReference("musiclibrary/samples/" + sampleName);
-            using (Stream input = blob.OpenRead())
-            using (Stream output = blob2.OpenWrite())
+            var outputBlob = cloudBlobContainer.GetBlockBlobReference("samples/" + sampleName);
+            using (Stream input = inputBlob.OpenRead())
+            using (Stream output = outputBlob.OpenWrite())
             {
                 CreateSample(input, output, 10);
-                blob2.Properties.ContentType = "audio/mpeg3";
+                outputBlob.Properties.ContentType = "audio/mpeg3";
             }
             sampleInTable.SampleDate = DateTime.Now;
-            sampleInTable.SampleMp3URL = blob2.Uri.ToString();
+            sampleInTable.SampleMp3URL = outputBlob.Uri.ToString();
 
             TableOperation tableOperation2 = TableOperation.InsertOrReplace(sampleInTable);
             tableBinding.Execute(tableOperation2);
 
-            logger.WriteLine("Sample createed");
-
-
-            //if (sampleInTable == null)
-            //{
-            //    logger.WriteLine("Person not found: PK:{0}, RK:{1}",
-            //    sampleInQueue.PartitionKey, sampleInQueue.RowKey);
-            //}
-
-            //else
-            //{
-            //    logger.WriteLine("Person found: PK:{0}, RK:{1}, Name:{2}",
-            //           sampleInTable.PartitionKey, sampleInTable.RowKey, sampleInTable.Title);
-
-            //    DateTime date;
-            //    date = DateTime.Now;
-            //    var newSample = new SampleEntity()
-            //    {
-            //        PartitionKey = sampleInQueue.PartitionKey,
-            //        RowKey = sampleInQueue.RowKey,
-            //        Mp3Blob = sampleInQueue.Mp3Blob,
-            //        SampleMp3Blob = sampleInQueue.Mp3Blob,
-            //        SampleMp3URL = "http://127.0.0.1:10000/devstoreaccount1/musiclibrary/samples/" + sampleInQueue.Mp3Blob,
-            //        SampleDate = DateTime.Now
-            //    };
-            //    newSample.ETag = "*";
-            //    TableOperation tableop = TableOperation.Merge(newSample);
-            //    tableBinding.Execute(tableop);
-
-            //    There is still problem here, if using this it must be modified.
-            //    inputBlob.FetchAttributes();
-            //    string test = inputBlob.Metadata["Title"];
-            //    Open streams to blobs for reading and writing as appropriate.
-            //    Pass references to application specific methods
-            //    using (Stream input = inputBlob.OpenRead())
-            //        using (Stream output = outputBlob.OpenWrite())
-            //        {
-            //            CreateSample(input, output, 10);
-            //            outputBlob.Properties.ContentType = "audio/mpeg3";
-            //        }
-            //    outputBlob.Metadata["Title"] = test;
-            //    outputBlob.SetMetadata();
-            //    logger.WriteLine("GenerateSample() completed...");
-            //}
+            logger.WriteLine("Sample created: "+ sampleName );
         }
 
         private static void CreateSample(Stream input, Stream output, int duration)

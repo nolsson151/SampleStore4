@@ -97,7 +97,7 @@ namespace SampleStore4.Controllers
 
         //POST: api/Samples
         /// <summary>
-        /// Create a new Sample entity
+        /// Create a new sample in table
         /// </summary>
         /// <param name="sample"></param>
         /// <returns></returns>
@@ -133,14 +133,14 @@ namespace SampleStore4.Controllers
 
         // PUT: api/Samples/5
         /// <summary>
-        /// Update a sample
+        /// Update a sample in table
         /// </summary>
         /// <param name="id"></param>
         /// <param name="sample"></param>
         /// <returns></returns>
         [SwaggerResponse(HttpStatusCode.NoContent)]
         [ResponseType(typeof(void))]
-        public IHttpActionResult PutProduct(string id, Sample sample)
+        public IHttpActionResult PutSample(string id, Sample sample)
         {
             if (id != sample.SampleID)
             {
@@ -173,14 +173,14 @@ namespace SampleStore4.Controllers
         }
         // PUT: api/Samples/5/blob
         /// <summary>
-        /// 
+        /// Puts a blob to a sample in table
         /// </summary>
         /// <param name="id"></param>
         /// <returns></returns>
         [ResponseType(typeof(void))]
         [HttpPut]
         [Route("api/samples/{id}/blob")]
-        public async Task<IHttpActionResult> putSampleDetails(string id)
+        public async Task<IHttpActionResult> PutSampleBlob(string id)
         {
             Stream stream = await Request.Content.ReadAsStreamAsync();
             if(stream.Length < 1)
@@ -197,9 +197,6 @@ namespace SampleStore4.Controllers
             }
 
             deleteBlob(sampleEntity);
-            sampleEntity.Mp3Blob = "";
-            sampleEntity.SampleMp3URL = "";
-            sampleEntity.SampleMp3Blob = "";
 
             string name = string.Format("{0}{1}", sampleEntity.Title, ".mp3");
             string path = "music/" + name;
@@ -226,7 +223,7 @@ namespace SampleStore4.Controllers
         /// <param name="id"></param>
         /// <returns></returns>
         [ResponseType(typeof(Sample))]
-        public IHttpActionResult DeleteProduct(string id)
+        public IHttpActionResult DeleteSample(string id)
         {
             // Create a retrieve operation that takes a product entity.
             TableOperation retrieveOperation = TableOperation.Retrieve<SampleEntity>(partitionName, id);
