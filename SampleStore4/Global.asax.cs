@@ -20,6 +20,7 @@ namespace SampleStore4
             GlobalConfiguration.Configure(WebApiConfig.Register);
             RouteConfig.RegisterRoutes(RouteTable.Routes);
 
+            // Create a table of samples with some intital values 
             InitialiseSamples.go();          
         }
     }

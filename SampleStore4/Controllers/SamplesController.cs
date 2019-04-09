@@ -160,7 +160,7 @@ namespace SampleStore4.Controllers
 
             updateEntity.Title = sample.Title;
             updateEntity.Artist = sample.Artist;
-            updateEntity.CreatedDate = sample.CreatedDate;
+            updateEntity.CreatedDate = sample.CreatedDate;  
 
 
             // Create the TableOperation that inserts the sample entity.
@@ -191,6 +191,9 @@ namespace SampleStore4.Controllers
                 return StatusCode(HttpStatusCode.UnsupportedMediaType);
             }
 
+            // Operation to retrieve a SampleEntity using partitionName and id. Operation is then executed
+            // and the result is assigned to a SampleEntity named SampleEntity. if the sample is null then
+            // return not found
             TableOperation tableOperation = TableOperation.Retrieve<SampleEntity>(partitionName, id);
             TableResult tableResult = table.Execute(tableOperation);
             SampleEntity sampleEntity = (SampleEntity)tableResult.Result;
@@ -199,19 +202,22 @@ namespace SampleStore4.Controllers
                 return StatusCode(HttpStatusCode.NotFound);
             }
 
+            // Delete any blobs that may have been in the table before and remove them from storage.
             deleteBlob(sampleEntity);
 
+            // Create a new name for the blob from the SampleEntity title in the table, assign the name to 
+            // the Mp3Blob element in the table and then create a containerto store this new blob with the 
+            // newly created name. Then uploaded the audio from the stream  to the blob container just created.
             string name = string.Format("{0}{1}", sampleEntity.Title, ".mp3");
-            string fullPath = musicDirectory + name;
-            var blob = getContainer().GetBlockBlobReference(fullPath);
-
+            sampleEntity.Mp3Blob = name;
+            var blob = getContainer().GetBlockBlobReference(musicDirectory+name);
             blob.Properties.ContentType = Request.Content.Headers.ContentType.ToString();
             blob.UploadFromStream(stream);
 
+            // Create a new queue message 
             CloudQueue cloudQueue = getSampleQueue();
             var queueMessage = new SampleEntity(partitionName, id);
             cloudQueue.AddMessage(new CloudQueueMessage(JsonConvert.SerializeObject(queueMessage)));
-            sampleEntity.Mp3Blob = name;
             var update = TableOperation.InsertOrReplace(sampleEntity);
             table.Execute(update);
             return StatusCode(HttpStatusCode.Created);
@@ -248,17 +254,17 @@ namespace SampleStore4.Controllers
 
         private void deleteBlob(SampleEntity sampleEntity)
         {
-            string musicDirectoryPath = musicDirectory + sampleEntity.Mp3Blob;
-            string sampleDirectoryPath = sampleDirectory + sampleEntity.SampleMp3Blob;
+            string musicToDelete = musicDirectory + sampleEntity.Mp3Blob;
+            string sampleToDelete = sampleDirectory + sampleEntity.SampleMp3Blob;
             
             if(sampleEntity.Mp3Blob != "")
             {
-                var musicBlob = getContainer().GetBlobReference(musicDirectoryPath);
+                var musicBlob = getContainer().GetBlobReference(musicToDelete);
                 musicBlob.DeleteIfExists(); 
             }
             if(sampleEntity.SampleMp3Blob != "")
             {
-                var sampleBlob = getContainer().GetBlobReference(sampleDirectoryPath);
+                var sampleBlob = getContainer().GetBlobReference(sampleToDelete);
                 sampleBlob.DeleteIfExists();
             }
         }
