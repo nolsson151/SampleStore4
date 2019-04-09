@@ -38,7 +38,7 @@ namespace SampleStore4_WebJob
             SampleEntity sampleEntity = (SampleEntity)tableResult.Result;
 
             var inputBlob = cloudBlobContainer.GetDirectoryReference("music/").GetBlobReference(sampleInTable.Mp3Blob);
-            var sampleName = string.Format("{0}{1}", Guid.NewGuid(), ".mp3");
+            var sampleName = string.Format("{0}{1}{2}", sampleInTable.Title, "-sample", ".mp3");
             sampleInTable.SampleMp3Blob = sampleName;
             var outputBlob = cloudBlobContainer.GetBlockBlobReference("samples/" + sampleName);
             using (Stream input = inputBlob.OpenRead())

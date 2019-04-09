@@ -32,8 +32,8 @@ namespace SampleStore4.Migrations
 
                 // Create a sample entity and add it to the table.
                 SampleEntity sample1 = new SampleEntity(partitionName, "1");
-                sample1.Title = "Song1";
-                sample1.Artist = "Artist1";
+                sample1.Title = "France";
+                sample1.Artist = "France";
                 sample1.CreatedDate = DateTime.Now;
                 sample1.Mp3Blob = null;
                 sample1.SampleMp3Blob = null;
@@ -42,8 +42,8 @@ namespace SampleStore4.Migrations
 
                 // Create another sample entity and add it to the table.
                 SampleEntity sample2 = new SampleEntity(partitionName, "2");
-                sample2.Title = "Song2";
-                sample2.Artist = "Artist2";
+                sample2.Title = "Russia";
+                sample2.Artist = "Russia";
                 sample2.CreatedDate = DateTime.Now;
                 sample2.Mp3Blob = null;
                 sample2.SampleMp3Blob = null;
@@ -52,8 +52,8 @@ namespace SampleStore4.Migrations
 
                 // Create another sample entity and add it to the table.
                 SampleEntity sample3 = new SampleEntity(partitionName, "3");
-                sample3.Title = "Song3";
-                sample3.Artist = "Artist3";
+                sample3.Title = "Sweden";
+                sample3.Artist = "Sweden";
                 sample3.CreatedDate = DateTime.Now;
                 sample3.Mp3Blob = null;
                 sample3.SampleMp3Blob = null;
@@ -62,8 +62,8 @@ namespace SampleStore4.Migrations
 
                 // Create another sample entity and add it to the table.
                 SampleEntity sample4 = new SampleEntity(partitionName, "4");
-                sample4.Title = "Song4";
-                sample4.Artist = "Artist4";
+                sample4.Title = "U.S.A";
+                sample4.Artist = "U.S.A";
                 sample4.CreatedDate = DateTime.Now;
                 sample4.Mp3Blob = null;
                 sample4.SampleMp3Blob = null;

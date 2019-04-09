@@ -20,6 +20,8 @@ namespace SampleStore4.Controllers
     public class SamplesController : ApiController
     {
         private const String partitionName = "Samples_Partition_1";
+        private const String musicDirectory = "music/";
+        private const String sampleDirectory = "samples/";
 
         private CloudStorageAccount storageAccount;
         private CloudTableClient tableClient;
@@ -158,7 +160,7 @@ namespace SampleStore4.Controllers
 
             updateEntity.Title = sample.Title;
             updateEntity.Artist = sample.Artist;
-            //updateEntity.CreatedDate = sample.CreatedDate;
+            updateEntity.CreatedDate = sample.CreatedDate;
 
 
             // Create the TableOperation that inserts the sample entity.
@@ -171,6 +173,7 @@ namespace SampleStore4.Controllers
 
             return StatusCode(HttpStatusCode.NoContent);
         }
+
         // PUT: api/Samples/5/blob
         /// <summary>
         /// Puts a blob to a sample in table
@@ -179,7 +182,7 @@ namespace SampleStore4.Controllers
         /// <returns></returns>
         [ResponseType(typeof(void))]
         [HttpPut]
-        [Route("api/samples/{id}/blob")]
+        [Route("api/Samples/{id}/blob")]
         public async Task<IHttpActionResult> PutSampleBlob(string id)
         {
             Stream stream = await Request.Content.ReadAsStreamAsync();
@@ -199,8 +202,8 @@ namespace SampleStore4.Controllers
             deleteBlob(sampleEntity);
 
             string name = string.Format("{0}{1}", sampleEntity.Title, ".mp3");
-            string path = "music/" + name;
-            var blob = getContainer().GetBlockBlobReference(path);
+            string fullPath = musicDirectory + name;
+            var blob = getContainer().GetBlockBlobReference(fullPath);
 
             blob.Properties.ContentType = Request.Content.Headers.ContentType.ToString();
             blob.UploadFromStream(stream);
@@ -243,19 +246,19 @@ namespace SampleStore4.Controllers
             }
         }
 
-        public void deleteBlob(SampleEntity sampleEntity)
+        private void deleteBlob(SampleEntity sampleEntity)
         {
-            string musicFolder = "music/" + sampleEntity.Mp3Blob;
-            string sampleFolder = "muisclibrary/samples/" + sampleEntity.SampleMp3Blob;
+            string musicDirectoryPath = musicDirectory + sampleEntity.Mp3Blob;
+            string sampleDirectoryPath = sampleDirectory + sampleEntity.SampleMp3Blob;
             
             if(sampleEntity.Mp3Blob != "")
             {
-                var musicBlob = getContainer().GetBlobReference(musicFolder);
+                var musicBlob = getContainer().GetBlobReference(musicDirectoryPath);
                 musicBlob.DeleteIfExists(); 
             }
             if(sampleEntity.SampleMp3Blob != "")
             {
-                var sampleBlob = getContainer().GetBlobReference(sampleFolder);
+                var sampleBlob = getContainer().GetBlobReference(sampleDirectoryPath);
                 sampleBlob.DeleteIfExists();
             }
         }
