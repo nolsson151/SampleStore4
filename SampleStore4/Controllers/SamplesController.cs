@@ -206,7 +206,7 @@ namespace SampleStore4.Controllers
             deleteBlob(sampleEntity);
 
             // Create a new name for the blob from the SampleEntity title in the table, assign the name to 
-            // the Mp3Blob element in the table and then create a containerto store this new blob with the 
+            // the Mp3Blob element in the table and then create a container to store this new blob with the 
             // newly created name. Then uploaded the audio from the stream  to the blob container just created.
             string name = string.Format("{0}{1}", sampleEntity.Title, ".mp3");
             sampleEntity.Mp3Blob = name;
@@ -214,11 +214,13 @@ namespace SampleStore4.Controllers
             blob.Properties.ContentType = Request.Content.Headers.ContentType.ToString();
             blob.UploadFromStream(stream);
 
-            // Create a new queue message 
+            // Create a new queue message fo a SampleEntity of the same partition and id that will generate
+            // a sample from the audio uploaded. Then perform another TableOperation to update the table with
+            // the new name for the Mp3 element in the table. Returns ok
             CloudQueue cloudQueue = getSampleQueue();
             var queueMessage = new SampleEntity(partitionName, id);
             cloudQueue.AddMessage(new CloudQueueMessage(JsonConvert.SerializeObject(queueMessage)));
-            var update = TableOperation.InsertOrReplace(sampleEntity);
+            TableOperation update = TableOperation.InsertOrReplace(sampleEntity);
             table.Execute(update);
             return StatusCode(HttpStatusCode.Created);
 
@@ -245,13 +247,18 @@ namespace SampleStore4.Controllers
                 SampleEntity deleteEntity = (SampleEntity)retrievedResult.Result;
                 TableOperation deleteOperation = TableOperation.Delete(deleteEntity);
 
+                
                 // Execute the operation.
                 table.Execute(deleteOperation);
+                // Delete any blobs from storage
+                deleteBlob(deleteEntity);
 
                 return Ok(retrievedResult.Result);
             }
         }
 
+        // Private method that takes a SampleEntity and uses its Mp3Blob and SampleMp3Blob variables to 
+        // find the blob to be deleted from storage.
         private void deleteBlob(SampleEntity sampleEntity)
         {
             string musicToDelete = musicDirectory + sampleEntity.Mp3Blob;
@@ -283,11 +290,13 @@ namespace SampleStore4.Controllers
             return maxRowKeyValue.ToString();
         }
 
+        // Returns CloudBlobContainer used to store blobs
         private CloudBlobContainer getContainer()
         {
             return blobStorageService.getCloudBlobContainer();
         }
 
+        // Reutnrs CloudQueue used to queue samples
         private CloudQueue getSampleQueue()
         {
             return cloudQueueService.getCloudQueue();

@@ -15,13 +15,11 @@ namespace SampleStore4_WebJob
 
     public class Functions
     {
+        private const String musicDirectory = "music/";
+        private const String sampleDirectory = "samples/";
+
         // This class contains the application-specific WebJob code consisting of event-driven
         // methods executed when messages appear in queues with any supporting code.
-
-        // Trigger method  - run when new message detected in queue. "thumbnailmaker" is name of queue.
-        // "photogallery" is name of storage container; "images" and "thumbanils" are folder names.
-        // "{queueTrigger}" is an inbuilt variable taking on value of contents of message automatically;
-        // the other variables are valued automatically.
         public static void GenerateSample(
         [QueueTrigger("samplemaker")] SampleEntity sampleInQueue,
         [Table("Samples", "{PartitionKey}", "{RowKey}")] SampleEntity sampleInTable,
@@ -33,14 +31,25 @@ namespace SampleStore4_WebJob
             BlobStorageService blobStorageService = new BlobStorageService();
             CloudBlobContainer cloudBlobContainer = blobStorageService.getCloudBlobContainer();
 
+            // Operation to retrieve a SampleEntity using partitionName and id from the sample in the queue.
+            // Operation is then executed and the result is assigned to a SampleEntity named sampleEntity. 
             TableOperation tableOperation = TableOperation.Retrieve<SampleEntity>(sampleInQueue.PartitionKey, sampleInQueue.RowKey);
             TableResult tableResult = tableBinding.Execute(tableOperation);
             SampleEntity sampleEntity = (SampleEntity)tableResult.Result;
-
-            var inputBlob = cloudBlobContainer.GetDirectoryReference("music/").GetBlobReference(sampleInTable.Mp3Blob);
-            var sampleName = string.Format("{0}{1}{2}", sampleInTable.Title, "-sample", ".mp3");
+            
+            // InputBlob in music storage is referenced and used as the the audio to be turned into a sample.
+            // Title is then taken from the sampleEntity in the table and assigned to sampleName which will then be used
+            // as the name of the sample file. This is name will also then be assigned to the table element of 
+            // SampleMp3Blob.
+            var inputBlob = cloudBlobContainer.GetDirectoryReference(musicDirectory).GetBlobReference(sampleInTable.Mp3Blob);
+            string sampleName = string.Format("{0}{1}", sampleInTable.Title, "-sample.mp3");
             sampleInTable.SampleMp3Blob = sampleName;
-            var outputBlob = cloudBlobContainer.GetBlockBlobReference("samples/" + sampleName);
+
+            // OutputBlob is is created in sample blob storage and is assigned the name sampleName. Using streams,
+            // the audio from the blob in music storage is read and and used in CreateSample to create a sample and 
+            // is saved to the sample blob is sample storage. SampleDate is set to the time at the moment of call 
+            // and the SampleMp3URL is set to the exact location of the sample in blob sotrage.
+            var outputBlob = cloudBlobContainer.GetBlockBlobReference(sampleDirectory + sampleName);
             using (Stream input = inputBlob.OpenRead())
             using (Stream output = outputBlob.OpenWrite())
             {
@@ -50,6 +59,8 @@ namespace SampleStore4_WebJob
             sampleInTable.SampleDate = DateTime.Now;
             sampleInTable.SampleMp3URL = outputBlob.Uri.ToString();
 
+            // Another table opertaion that that will update the table with the new SampleMp3Blob, SampleDate,
+            // and the SampleMp3URL. 
             TableOperation tableOperation2 = TableOperation.InsertOrReplace(sampleInTable);
             tableBinding.Execute(tableOperation2);
 
