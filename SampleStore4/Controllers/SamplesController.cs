@@ -160,7 +160,7 @@ namespace SampleStore4.Controllers
 
             updateEntity.Title = sample.Title;
             updateEntity.Artist = sample.Artist;
-            updateEntity.CreatedDate = sample.CreatedDate;  
+            
 
 
             // Create the TableOperation that inserts the sample entity.
